@@ -1,0 +1,413 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>英语口语评分</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: -apple-system, "PingFang SC", "Microsoft YaHei", sans-serif;
+    background: #f4f6fb; color: #2b3245; padding: 24px;
+  }
+  .wrap { max-width: 860px; margin: 0 auto; }
+  h1 { font-size: 24px; margin-bottom: 4px; }
+  .sub { color: #8892a8; font-size: 13px; margin-bottom: 20px; }
+  .card {
+    background: #fff; border-radius: 12px; padding: 20px 24px;
+    box-shadow: 0 1px 4px rgba(30,40,80,.06); margin-bottom: 20px;
+  }
+  label { display: block; font-size: 13px; font-weight: 600; margin: 12px 0 6px; color: #3c465e; }
+  input[type=text], textarea {
+    width: 100%; padding: 10px 12px; border: 1px solid #d8deea; border-radius: 8px;
+    font-size: 15px; font-family: inherit; resize: vertical;
+  }
+  textarea { min-height: 70px; }
+  .row { display: flex; gap: 12px; align-items: center; flex-wrap: wrap; }
+  button {
+    padding: 10px 22px; border: none; border-radius: 8px; font-size: 15px;
+    cursor: pointer; font-weight: 600; transition: background .15s;
+  }
+  #recBtn { background: #e5534b; color: #fff; min-width: 130px; }
+  #recBtn:hover { background: #c93a33; }
+  #recBtn.recording { background: #2f9e44; animation: pulse 1s infinite; }
+  @keyframes pulse { 50% { opacity: .65; } }
+  #uploadBtn { background: #fff; color: #3c465e; border: 1px solid #d8deea; }
+  #timer { font-size: 18px; font-variant-numeric: tabular-nums; color: #e5534b; font-weight: 700; min-width: 60px; }
+  #status { font-size: 14px; color: #6b7690; margin-left: auto; }
+  .warn {
+    background: #fff8e6; border: 1px solid #f0d98c; color: #8a6d1a;
+    border-radius: 8px; padding: 10px 14px; font-size: 13px; margin-bottom: 16px;
+  }
+  /* 模式切换 */
+  .tabs { display: flex; gap: 8px; margin-bottom: 16px; }
+  .tab {
+    padding: 8px 20px; border-radius: 8px; border: 1px solid #d8deea;
+    background: #fff; font-size: 14px; font-weight: 600; color: #6b7690; cursor: pointer;
+  }
+  .tab.active { background: #2f6fed; border-color: #2f6fed; color: #fff; }
+  /* 评分结果 */
+  #result { display: none; }
+  .total-score { display: flex; align-items: baseline; gap: 8px; margin: 8px 0 6px; }
+  .total-score .num { font-size: 44px; font-weight: 800; color: #2f6fed; }
+  .total-score .den { font-size: 16px; color: #8892a8; }
+  .dim { margin-bottom: 12px; }
+  .dim .label { display: flex; justify-content: space-between; font-size: 14px; margin-bottom: 4px; }
+  .dim .label .name { font-weight: 600; }
+  .dim .label .val { font-variant-numeric: tabular-nums; }
+  .bar { height: 10px; background: #eef1f7; border-radius: 5px; overflow: hidden; }
+  .bar > div { height: 100%; border-radius: 5px; transition: width .4s; }
+  .feedback {
+    background: #f0f6ff; border-left: 3px solid #2f6fed; border-radius: 0 8px 8px 0;
+    padding: 12px 16px; font-size: 14px; line-height: 1.7; color: #3c465e; margin-top: 8px;
+  }
+  .transcript {
+    background: #f7f8fb; border-radius: 8px; padding: 10px 14px; font-size: 14px;
+    color: #4a5468; margin-top: 10px; line-height: 1.6;
+  }
+  .transcript b { color: #8892a8; font-weight: 600; font-size: 12px; display: block; margin-bottom: 4px; }
+  /* 记录表 */
+  table { width: 100%; border-collapse: collapse; font-size: 14px; }
+  th, td { padding: 10px 8px; text-align: left; border-bottom: 1px solid #eef1f7; vertical-align: top; }
+  th { color: #8892a8; font-weight: 600; font-size: 13px; }
+  .score-pill {
+    display: inline-block; min-width: 44px; text-align: center;
+    padding: 2px 8px; border-radius: 10px; font-weight: 700; font-size: 13px;
+  }
+  .pill-high { background: #e6f6ec; color: #1c7a3d; }
+  .pill-mid { background: #fff4e0; color: #a06414; }
+  .pill-low { background: #fdeaea; color: #b3372f; }
+  .mode-tag { font-size: 11px; padding: 2px 8px; border-radius: 8px; background: #eef2fb; color: #2f6fed; white-space: nowrap; }
+  .mode-tag.free { background: #f3eefe; color: #7b5cf0; }
+  .play-btn { font-size: 12px; padding: 3px 10px; background: #eef2fb; color: #2f6fed; border-radius: 6px; border: none; cursor: pointer; }
+  .del-btn { font-size: 12px; padding: 3px 10px; background: none; color: #b3372f; border: none; cursor: pointer; }
+  h2 { font-size: 17px; margin-bottom: 10px; }
+  .empty { color: #9aa4bb; font-size: 14px; padding: 14px 0; }
+  #stats { font-size: 13px; color: #6b7690; margin-bottom: 12px; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>英语口语评分</h1>
+  <div class="sub">录音 → AI 识别评分 · 5 个维度各 2 分，满分 10 分</div>
+
+  {% if not ise_ready %}
+  <div class="warn" id="warnRead">⚠️ 「跟读评分」未配置：请在 <code>iflytek_config.json</code> 的 <code>ise</code> 中填写 <code>api_key</code> 和 <code>api_secret</code>。</div>
+  {% endif %}
+  {% if not free_ready %}
+  <div class="warn" id="warnFree">⚠️ 「自由表达」未配置：需要 <code>raasr.api_secret</code>（语音转写）和 <code>deepseek.api_key</code> 或 <code>spark</code> 三件套（大模型主观评分）。</div>
+  {% endif %}
+
+  <div class="card" id="accessCard" style="display:none;">
+    <h2>学生入口（局域网）</h2>
+    <div style="font-size:13px;color:#6b7690;margin-bottom:10px;">
+      确保学生平板与本电脑连接<strong>同一 Wi-Fi</strong>，然后用平板扫码或输入地址打开本页。
+      学生填写姓名 → 录音 → 提交，记录会自动保存到本电脑。
+    </div>
+    <div class="row">
+      <img id="qrImg" style="width:160px;height:160px;border:1px solid #eef1f7;border-radius:8px;" alt="学生入口二维码">
+      <div>
+        <div style="font-size:15px;font-weight:700;color:#2f6fed;" id="accessUrl"></div>
+        <div style="font-size:12px;color:#9aa4bb;margin-top:6px;">把此地址发给学生，或投屏展示二维码让学生扫码</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="tabs">
+      <button class="tab active" id="tabRead" onclick="setMode('read')">跟读评分</button>
+      <button class="tab" id="tabFree" onclick="setMode('free')">自由表达</button>
+    </div>
+
+    <label>学生姓名</label>
+    <input type="text" id="name" placeholder="例如：张三">
+
+    <div id="readFields">
+      <label>朗读文本（学生照着读的英文句子）</label>
+      <textarea id="text">I have stood atop mountains and fallen into valleys, and I have gained much from both experiences.</textarea>
+    </div>
+    <div id="freeFields" style="display:none;">
+      <label>表达主题 / 要求（选填，帮助 AI 理解评分上下文）</label>
+      <input type="text" id="topic" placeholder="例如：介绍你的学校 / 周末计划 / 最喜欢的运动">
+    </div>
+
+    <div class="row" style="margin-top:14px;">
+      <button id="recBtn">● 开始朗读</button>
+      <span id="timer">0:00</span>
+      <button id="uploadBtn" style="display:none;">上传音频文件</button>
+      <input type="file" id="fileInput" accept="audio/*" style="display:none;">
+      <span id="status"></span>
+    </div>
+  </div>
+
+  <div class="card" id="result">
+    <h2>评分结果</h2>
+    <div class="total-score"><span class="num" id="totalNum">-</span><span class="den">/ 10 分</span></div>
+    <div id="dims"></div>
+    <div id="transcriptBox"></div>
+    <div id="feedbackBox"></div>
+    <div id="detail" style="margin-top:14px; font-size:13px; color:#6b7690;"></div>
+  </div>
+
+  <div class="card">
+    <h2>学生成绩统计</h2>
+    <div id="stats">加载中…</div>
+    <h2 style="margin-top:18px;">历史记录</h2>
+    <table>
+      <thead><tr>
+        <th>时间</th><th>学生</th><th>模式/内容</th><th>总分</th>
+        <th>发音</th><th>语调</th><th>流利</th><th>完整</th><th>节奏</th><th></th>
+      </tr></thead>
+      <tbody id="tbody"><tr><td colspan="10" class="empty">暂无记录</td></tr></tbody>
+    </table>
+  </div>
+</div>
+
+<script>
+const DIMS = [
+  ['pronunciation', '发音准确度'],
+  ['intonation',   '语音语调'],
+  ['fluency',      '表达流利度'],
+  ['completeness', '表达完整度'],
+  ['rhythm',       '节奏把控'],
+];
+const COLORS = { pronunciation:'#2f6fed', intonation:'#7b5cf0', fluency:'#12a594', completeness:'#e8930c', rhythm:'#e5534b' };
+let mode = 'read';
+
+function setMode(m) {
+  mode = m;
+  document.getElementById('tabRead').classList.toggle('active', m === 'read');
+  document.getElementById('tabFree').classList.toggle('active', m === 'free');
+  document.getElementById('readFields').style.display = m === 'read' ? '' : 'none';
+  document.getElementById('freeFields').style.display = m === 'free' ? '' : 'none';
+  document.getElementById('result').style.display = 'none';
+}
+
+// ---------- 录音：getUserMedia -> PCM 16kHz -> WAV ----------
+let audioCtx, mediaStream, processor, sourceNode, chunks = [], recording = false;
+let timerInt = null, seconds = 0;
+
+const recBtn = document.getElementById('recBtn');
+const timerEl = document.getElementById('timer');
+const statusEl = document.getElementById('status');
+const uploadBtn = document.getElementById('uploadBtn');
+const fileInput = document.getElementById('fileInput');
+
+function setStatus(t) { statusEl.textContent = t; }
+
+recBtn.onclick = async () => {
+  if (recording) { stopRecording(); return; }
+  try {
+    mediaStream = await navigator.mediaDevices.getUserMedia({ audio: { channelCount: 1, echoCancellation: true, noiseSuppression: true } });
+  } catch (e) {
+    setStatus('无法访问麦克风：' + e.message);
+    return;
+  }
+  audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+  sourceNode = audioCtx.createMediaStreamSource(mediaStream);
+  processor = audioCtx.createScriptProcessor(4096, 1, 1);
+  chunks = [];
+  processor.onaudioprocess = e => chunks.push(new Float32Array(e.inputBuffer.getChannelData(0)));
+  sourceNode.connect(processor);
+  processor.connect(audioCtx.destination);
+  recording = true;
+  seconds = 0; timerEl.textContent = '0:00';
+  timerInt = setInterval(() => {
+    seconds++;
+    timerEl.textContent = Math.floor(seconds/60) + ':' + String(seconds%60).padStart(2,'0');
+  }, 1000);
+  recBtn.textContent = '■ 停止录音';
+  recBtn.classList.add('recording');
+  uploadBtn.style.display = 'none';
+  setStatus('正在录音…说完请点击停止');
+};
+
+function stopRecording() {
+  recording = false;
+  clearInterval(timerInt);
+  processor.disconnect(); sourceNode.disconnect();
+  mediaStream.getTracks().forEach(t => t.stop());
+  audioCtx.close();
+  recBtn.textContent = '● 开始朗读';
+  recBtn.classList.remove('recording');
+  const pcm = mergeChunks(chunks);
+  const wav = encodeWav(downsample(pcm, audioCtx.sampleRate, 16000), 16000);
+  uploadBtn.style.display = '';
+  setStatus('录音完成（' + seconds.toFixed(0) + ' 秒），AI 识别评分中，请稍候…');
+  submitAudio(new Blob([wav], { type: 'audio/wav' }), 'recording.wav');
+}
+
+function mergeChunks(list) {
+  let len = 0; list.forEach(c => len += c.length);
+  const out = new Float32Array(len); let off = 0;
+  list.forEach(c => { out.set(c, off); off += c.length; });
+  return out;
+}
+
+function downsample(input, fromRate, toRate) {
+  if (fromRate === toRate) return input;
+  const ratio = fromRate / toRate;
+  const outLen = Math.floor(input.length / ratio);
+  const out = new Float32Array(outLen);
+  for (let i = 0; i < outLen; i++) out[i] = input[Math.floor(i * ratio)];
+  return out;
+}
+
+function encodeWav(samples, sampleRate) {
+  const buf = new ArrayBuffer(44 + samples.length * 2);
+  const v = new DataView(buf);
+  const wstr = (o, s) => { for (let i = 0; i < s.length; i++) v.setUint8(o + i, s.charCodeAt(i)); };
+  wstr(0, 'RIFF'); v.setUint32(4, 36 + samples.length * 2, true); wstr(8, 'WAVE');
+  wstr(12, 'fmt '); v.setUint32(16, 16, true); v.setUint16(20, 1, true);
+  v.setUint16(22, 1, true); v.setUint32(24, sampleRate, true);
+  v.setUint32(28, sampleRate * 2, true); v.setUint16(32, 2, true); v.setUint16(34, 16, true);
+  wstr(36, 'data'); v.setUint32(40, samples.length * 2, true);
+  for (let i = 0; i < samples.length; i++) {
+    let s = Math.max(-1, Math.min(1, samples[i]));
+    v.setInt16(44 + i * 2, s < 0 ? s * 0x8000 : s * 0x7FFF, true);
+  }
+  return buf;
+}
+
+// ---------- 上传已有音频文件 ----------
+uploadBtn.onclick = () => fileInput.click();
+fileInput.onchange = () => {
+  const f = fileInput.files[0];
+  if (!f) return;
+  setStatus('正在转换并识别评分…');
+  decodeToWav(f).then(blob => submitAudio(blob, f.name)).catch(e => setStatus('音频解析失败: ' + e.message));
+};
+
+async function decodeToWav(file) {
+  const ab = await file.arrayBuffer();
+  const ctx = new (window.AudioContext || window.webkitAudioContext)();
+  const audio = await ctx.decodeAudioData(ab);
+  ctx.close();
+  const ch0 = audio.getChannelData(0);
+  const pcm16k = downsample(ch0, audio.sampleRate, 16000);
+  return new Blob([encodeWav(pcm16k, 16000)], { type: 'audio/wav' });
+}
+
+// ---------- 提交评分 ----------
+async function submitAudio(blob, filename) {
+  const name = document.getElementById('name').value.trim();
+  if (!name) { setStatus('请先填写学生姓名'); return; }
+  const fd = new FormData();
+  fd.append('name', name);
+  fd.append('mode', mode);
+  if (mode === 'read') {
+    const text = document.getElementById('text').value.trim();
+    if (!text) { setStatus('请填写朗读文本'); return; }
+    fd.append('text', text);
+  } else {
+    fd.append('topic', document.getElementById('topic').value.trim());
+  }
+  fd.append('audio', blob, filename || 'audio.wav');
+  try {
+    const resp = await fetch('/api/assess', { method: 'POST', body: fd });
+    const data = await resp.json();
+    if (!resp.ok) { setStatus('评分失败: ' + (data.error || resp.status)); return; }
+    showResult(data.score, data);
+    setStatus('评分完成');
+    loadRecords(); loadStats();
+  } catch (e) {
+    setStatus('请求失败: ' + e.message);
+  }
+}
+
+function showResult(score, data) {
+  document.getElementById('result').style.display = 'block';
+  document.getElementById('totalNum').textContent = score.total;
+  const dimsEl = document.getElementById('dims');
+  dimsEl.innerHTML = '';
+  for (const [key, label] of DIMS) {
+    const v = score[key];
+    const pct = Math.min(100, v / 2 * 100);
+    const cls = v >= 1.5 ? 'pill-high' : v >= 1.0 ? 'pill-mid' : 'pill-low';
+    dimsEl.innerHTML += `
+      <div class="dim">
+        <div class="label"><span class="name">${label}</span><span class="val score-pill ${cls}">${v} / 2</span></div>
+        <div class="bar"><div style="width:${pct}%;background:${COLORS[key]}"></div></div>
+      </div>`;
+  }
+  // 转写文本（自由表达模式）
+  const tb = document.getElementById('transcriptBox');
+  if (data.transcript) {
+    tb.innerHTML = `<div class="transcript"><b>AI 识别转写</b>${esc(data.transcript)}</div>`;
+  } else { tb.innerHTML = ''; }
+  // AI 评语
+  const fb = document.getElementById('feedbackBox');
+  if (data.feedback) {
+    fb.innerHTML = `<div class="feedback"><b style="color:#2f6fed">AI 评语</b><br>${esc(data.feedback)}</div>`;
+  } else { fb.innerHTML = ''; }
+  // 详情行
+  const detail = document.getElementById('detail');
+  if (data.ise) {
+    detail.textContent = `AI 原始评分（0-100）：准确度 ${data.ise.accuracy} · 标准度 ${data.ise.standard} · 流利度 ${data.ise.fluency} · 完整度 ${data.ise.integrity} · 综合 ${data.ise.total}`;
+  } else { detail.textContent = ''; }
+}
+
+// ---------- 历史记录 ----------
+async function loadRecords() {
+  const resp = await fetch('/api/records');
+  const rows = await resp.json();
+  const tb = document.getElementById('tbody');
+  if (!rows.length) { tb.innerHTML = '<tr><td colspan="10" class="empty">暂无记录</td></tr>'; return; }
+  tb.innerHTML = rows.map(r => {
+    const pill = r.total >= 8 ? 'pill-high' : r.total >= 5 ? 'pill-mid' : 'pill-low';
+    const isFree = r.mode === 'free';
+    const content = isFree
+      ? (r.transcript ? esc(r.transcript.slice(0, 40)) + (r.transcript.length > 40 ? '…' : '') : '自由表达')
+      : esc(r.reference_text || '');
+    const short = content.length > 30 ? content.slice(0, 30) + '…' : content;
+    return `<tr>
+      <td style="white-space:nowrap">${r.created_at}</td>
+      <td>${esc(r.student_name)}</td>
+      <td title="${esc(isFree ? (r.transcript || '') : (r.reference_text || ''))}">
+        <span class="mode-tag ${isFree ? 'free' : ''}">${isFree ? '自由' : '跟读'}</span> ${short}
+        ${r.feedback ? `<div style="font-size:12px;color:#8892a8;margin-top:4px">${esc(r.feedback.slice(0,60))}${r.feedback.length>60?'…':''}</div>` : ''}
+      </td>
+      <td><span class="score-pill ${pill}">${r.total}</span></td>
+      <td>${r.pronunciation}</td><td>${r.intonation}</td><td>${r.fluency}</td>
+      <td>${r.completeness}</td><td>${r.rhythm}</td>
+      <td style="white-space:nowrap">
+        ${r.audio_file ? `<button class="play-btn" onclick="playAudio('${r.audio_file}')">▶</button>` : ''}
+        <button class="del-btn" onclick="delRecord(${r.id})">删除</button>
+      </td></tr>`;
+  }).join('');
+}
+
+async function loadStats() {
+  const resp = await fetch('/api/stats');
+  const rows = await resp.json();
+  document.getElementById('stats').innerHTML = rows.length
+    ? rows.map(s => `${esc(s.student_name)}：${s.count} 次 · 平均 ${s.avg} · 最高 ${s.best}`).join('<br>')
+    : '暂无数据';
+}
+
+function esc(s) { return String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+
+let audioPlayer = null;
+function playAudio(f) {
+  if (audioPlayer) { audioPlayer.pause(); }
+  audioPlayer = new Audio('/api/audio/' + encodeURIComponent(f));
+  audioPlayer.play();
+}
+
+async function delRecord(id) {
+  if (!confirm('删除这条记录及录音？')) return;
+  await fetch('/api/records/' + id, { method: 'DELETE' });
+  loadRecords(); loadStats();
+}
+
+// ---------- 局域网访问信息（教师端展示） ----------
+fetch('/api/access-info').then(r => r.json()).then(d => {
+  document.getElementById('accessUrl').textContent = d.url;
+  document.getElementById('qrImg').src = d.qr;
+  document.getElementById('accessCard').style.display = '';
+}).catch(() => {});
+
+loadRecords(); loadStats();
+</script>
+</body>
+</html>
