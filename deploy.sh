@@ -59,11 +59,11 @@ pip install -r "$APP_DIR/requirements.txt"
 # 创建环境变量文件
 echo "正在配置环境变量..."
 cat > "$APP_DIR/.env" << 'EOF'
-IFLYTEK_APP_ID=fab5268d
-IFLYTEK_ISE_API_KEY=96b0636b7bd75b8d3b7790bfa63e0d22
-IFLYTEK_ISE_API_SECRET=MTU2MDNhYzJkMmU1NzJhOWE2ODFmZTQ0
-IFLYTEK_RAASR_API_SECRET=2c2e55b0375def0ca4157dc9cc51dd54
-DEEPSEEK_API_KEY=sk-8fb1feef70c843f99bcc691daded2fd4
+IFLYTEK_APP_ID=你的讯飞APPID
+IFLYTEK_ISE_API_KEY=你的ISE_APIKey
+IFLYTEK_ISE_API_SECRET=你的ISE_APISecret
+IFLYTEK_RAASR_API_SECRET=你的转写SecretKey
+DEEPSEEK_API_KEY=你的DeepSeek_API_Key
 DEEPSEEK_MODEL=deepseek-chat
 DEEPSEEK_BASE_URL=https://api.deepseek.com
 AUDIO_RETENTION_DAYS=30
@@ -72,6 +72,10 @@ ENABLE_CLEANUP=true
 HOST=0.0.0.0
 PORT=5017
 EOF
+
+echo "注意：环境变量已使用占位符，请登录服务器后手动编辑 $APP_DIR/.env 文件填入真实 API key"
+echo "编辑命令: nano $APP_DIR/.env"
+echo "编辑后重启服务: systemctl restart english-speaking-app"
 
 # 创建 uploads 目录
 mkdir -p "$APP_DIR/uploads"
@@ -148,6 +152,10 @@ echo "========================================="
 echo "部署完成！"
 echo "========================================="
 echo "访问地址: http://$SERVER_IP"
+echo ""
+echo "下一步：配置 API Key"
+echo "执行命令: cd /opt/english-speaking-app && bash config.sh"
+echo "按提示输入你的讯飞和 DeepSeek API Key"
 echo ""
 echo "如果访问不了，请检查："
 echo "1. 云服务器安全组是否开放 80 端口"

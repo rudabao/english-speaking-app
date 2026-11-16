@@ -54,10 +54,29 @@ curl -fsSL https://raw.githubusercontent.com/rudabao/english-speaking-app/main/d
 部署完成！
 =========================================
 访问地址: http://123.45.67.89
+
+下一步：配置 API Key
+执行命令: cd /opt/english-speaking-app && bash config.sh
+按提示输入你的讯飞和 DeepSeek API Key
 =========================================
 ```
 
-### 5. 在浏览器打开地址
+### 5. 配置 API Key
+复制粘贴以下命令，回车：
+```bash
+cd /opt/english-speaking-app && bash config.sh
+```
+
+按提示依次输入以下信息（直接回车跳过某项）：
+- 讯飞 APPID：`fab5268d`
+- 讯飞 ISE APIKey：`96b0636b7bd75b8d3b7790bfa63e0d22`
+- 讯飞 ISE APISecret：`MTU2MDNhYzJkMmU1NzJhOWE2ODFmZTQ0`
+- 讯飞转写 SecretKey：`2c2e55b0375def0ca4157dc9cc51dd54`
+- DeepSeek API Key：`sk-8fb1feef70c843f99bcc691daded2fd4`
+
+输入完成后脚本会自动重启服务。
+
+### 6. 在浏览器打开地址
 把脚本显示的地址（例如 `http://123.45.67.89`）发给学生即可。
 
 ---
