@@ -8,7 +8,6 @@ import base64
 import json
 import xml.etree.ElementTree as ET
 import requests
-import socket
 import io
 import qrcode
 import threading
@@ -16,8 +15,18 @@ from datetime import datetime, timedelta
 from urllib.parse import urlencode, quote
 from email.utils import formatdate
 
-app = Flask(__name__)
+# 加载 .env 文件（如果存在）
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+env_path = os.path.join(BASE_DIR, '.env')
+if os.path.exists(env_path):
+    with open(env_path, 'r') as f:
+        for line in f:
+            line = line.strip()
+            if line and not line.startswith('#') and '=' in line:
+                key, value = line.split('=', 1)
+                os.environ[key.strip()] = value.strip()
+
+app = Flask(__name__)
 app.config['UPLOAD_FOLDER'] = os.path.join(BASE_DIR, 'uploads')
 os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
 
@@ -588,39 +597,11 @@ def stats():
         "best": max(v)
     } for k, v in by_student.items()])
 
-def _is_private_ip(ip):
-    if ip.startswith('127.') or ip == '0.0.0.0':
-        return False
-    if ip.startswith('192.168.') or ip.startswith('10.'):
-        return True
-    parts = ip.split('.')
-    if len(parts) == 4 and parts[0] == '172' and 16 <= int(parts[1]) <= 31:
-        return True
-    return False
-
-def lan_ip():
-    try:
-        for fam, _, _, _, sa in socket.getaddrinfo(socket.gethostname(), None, socket.AF_INET):
-            ip = sa[0]
-            if _is_private_ip(ip):
-                return ip
-    except Exception:
-        pass
-    try:
-        s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-        s.connect(('8.8.8.8', 80))
-        ip = s.getsockname()[0]
-        s.close()
-        if _is_private_ip(ip):
-            return ip
-    except Exception:
-        pass
-    return '127.0.0.1'
-
 @app.route('/api/access-info')
 def access_info():
-    ip = lan_ip()
-    url = f'http://{ip}:5017'
+    # 云服务器部署时，直接使用当前请求的 host
+    # 本地部署时尝试获取局域网 IP
+    url = request.host_url.rstrip('/')
     img = qrcode.make(url)
     buf = io.BytesIO()
     img.save(buf, format='PNG')
