@@ -87,6 +87,10 @@ server {
     listen 80;
     server_name _;
 
+    client_max_body_size 50m;
+    proxy_read_timeout 120s;
+    proxy_send_timeout 120s;
+
     location / {
         proxy_pass http://127.0.0.1:5017;
         proxy_set_header Host $host;
